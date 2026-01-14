@@ -11,7 +11,8 @@ import (
 var localIPv4Regex = regexp.MustCompile(`\b((?:[0-9]{1,3}\.){3}[0-9]{1,3})\b`)
 
 func LumeMachineIP(ctx context.Context, vmName string, ui packer.Ui, ipExtraArgs []string) (string, error) {
-	ipArgs := []string{fmt.Sprintf("lume get %s | tail -n 1 | awk '{ print $8 }'", vmName)}
+	// Fix: IP column varies by lume version. Grep for IP pattern from full line instead.
+	ipArgs := []string{fmt.Sprintf("lume get %s | tail -n 1 | grep -oE '([0-9]{1,3}\\.){3}[0-9]{1,3}' | head -1", vmName)}
 	// ipArgs := []string{fmt.Sprintf("arp -a | grep -i $(cat /Users/administrator/.lume/%s/config.json | jq -r '.macAddress')", vmName)}
 	outChan, errChan := LumeExec().
 		WithContext(ctx).
@@ -59,6 +60,6 @@ func LumeMachineIP(ctx context.Context, vmName string, ui packer.Ui, ipExtraArgs
 		}
 	}
 
-	ui.Say("Returing ip")
+	ui.Say("Returning ip")
 	return ip, nil
 }
