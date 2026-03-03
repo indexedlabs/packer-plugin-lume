@@ -119,28 +119,30 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 		steps = append(steps, new(stepRun))
 	}
 
-	if !b.config.RecoveryMode && communicatorConfigured {
+	if !b.config.RecoveryMode {
+		if communicatorConfigured {
+			ui.Say("SSH")
+			ui.Sayf("%+v", b.config.CommunicatorConfig.SSH)
+			b.config.CommunicatorConfig.PauseBeforeConnect = time.Minute
+			// b.config.CommunicatorConfig.SSHWaitTimeout = 10 * time.Minute
+			// b.config.CommunicatorConfig.SSHTimeout = 5 * time.Minute
 
-		ui.Say("SSH")
-		ui.Sayf("%+v", b.config.CommunicatorConfig.SSH)
-		b.config.CommunicatorConfig.PauseBeforeConnect = time.Minute
-		// b.config.CommunicatorConfig.SSHWaitTimeout = 10 * time.Minute
-		// b.config.CommunicatorConfig.SSHTimeout = 5 * time.Minute
-
-		steps = append(steps,
-			// &communicator.StepSSHKeyGen{
-			// 	CommConf:            &b.config.CommunicatorConfig,
-			// 	SSHTemporaryKeyPair: b.config.CommunicatorConfig.SSH.SSHTemporaryKeyPair,
-			// },
-			&communicator.StepConnect{
-				Config: &b.config.CommunicatorConfig,
-				Host: func(state multistep.StateBag) (string, error) {
-					return LumeMachineIP(ctx, b.config.VMName, ui, b.config.IpExtraArgs)
+			steps = append(steps,
+				// &communicator.StepSSHKeyGen{
+				// 	CommConf:            &b.config.CommunicatorConfig,
+				// 	SSHTemporaryKeyPair: b.config.CommunicatorConfig.SSH.SSHTemporaryKeyPair,
+				// },
+				&communicator.StepConnect{
+					Config: &b.config.CommunicatorConfig,
+					Host: func(state multistep.StateBag) (string, error) {
+						return LumeMachineIP(ctx, b.config.VMName, ui, b.config.IpExtraArgs)
+					},
+					SSHConfig: b.config.CommunicatorConfig.SSHConfigFunc(),
 				},
-				SSHConfig: b.config.CommunicatorConfig.SSHConfigFunc(),
-			},
-			&commonsteps.StepProvision{},
-		)
+			)
+		}
+
+		steps = append(steps, &commonsteps.StepProvision{})
 	}
 
 	// Setup the state bag and initial state for the steps
